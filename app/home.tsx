@@ -1,58 +1,157 @@
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import AnimatedBackground from '../components/auth/AnimatedBackground';
-import GlassCard from '../components/auth/GlassCard';
 import GradientButton from '../components/auth/GradientButton';
+import PermissionRequest from '../components/dashboard/PermissionRequest';
+import SummaryCard from '../components/dashboard/SummaryCard';
+import TransactionList from '../components/dashboard/TransactionList';
 import { Colors, FontSizes, Spacing } from '../constants/theme';
+import {
+    checkSmsPermission,
+    getUpiTransactions,
+    requestSmsPermission,
+} from '../services/smsReader';
+import { SpendSummary } from '../services/types';
+
+type ScreenState = 'checking' | 'needsPermission' | 'scanning' | 'ready' | 'unsupported';
 
 export default function HomeScreen() {
-    const router = useRouter();
+    const [state, setState] = useState<ScreenState>('checking');
+    const [summary, setSummary] = useState<SpendSummary | null>(null);
+
+    // Check permission on mount
+    useEffect(() => {
+        (async () => {
+            if (Platform.OS !== 'android') {
+                setState('unsupported');
+                return;
+            }
+            const hasPermission = await checkSmsPermission();
+            setState(hasPermission ? 'scanning' : 'needsPermission');
+            if (hasPermission) {
+                await scanMessages();
+            }
+        })();
+    }, []);
+
+    const scanMessages = useCallback(async () => {
+        setState('scanning');
+        try {
+            const result = await getUpiTransactions(1000);
+            setSummary(result);
+            setState('ready');
+        } catch (err) {
+            console.warn('Scan error:', err);
+            setState('ready');
+            setSummary({
+                totalSpent: 0,
+                totalReceived: 0,
+                transactionCount: 0,
+                debitCount: 0,
+                creditCount: 0,
+                transactions: [],
+            });
+        }
+    }, []);
+
+    const handleGrantPermission = useCallback(async () => {
+        const granted = await requestSmsPermission();
+        if (granted) {
+            await scanMessages();
+        }
+    }, [scanMessages]);
 
     return (
         <AnimatedBackground>
             <StatusBar style="light" />
-            <View style={styles.container}>
-                <GlassCard style={styles.card}>
-                    <Text style={styles.title}>Welcome Home! 🏠</Text>
-                    <Text style={styles.subtitle}>
-                        You have successfully navigated to the home screen. This is a testing landing page.
-                    </Text>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <Text style={styles.appTitle}>UPI Parser</Text>
 
-                    <GradientButton
-                        title="Back to Login"
-                        onPress={() => router.replace('/')}
-                        style={{ marginTop: Spacing.lg }}
-                    />
-                </GlassCard>
-            </View>
+                {state === 'checking' && (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color={Colors.cyberCyan} />
+                    </View>
+                )}
+
+                {state === 'unsupported' && (
+                    <View style={styles.center}>
+                        <Text style={styles.unsupportedText}>
+                            SMS reading is only available on Android devices.
+                        </Text>
+                    </View>
+                )}
+
+                {state === 'needsPermission' && (
+                    <PermissionRequest onGrant={handleGrantPermission} />
+                )}
+
+                {state === 'scanning' && (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color={Colors.cyberCyan} />
+                        <Text style={styles.scanningText}>
+                            Scanning your messages...
+                        </Text>
+                    </View>
+                )}
+
+                {state === 'ready' && summary && (
+                    <>
+                        <SummaryCard summary={summary} />
+                        <View style={styles.spacer} />
+                        <TransactionList transactions={summary.transactions} />
+                        <View style={styles.spacer} />
+                        <GradientButton
+                            title="Rescan Messages"
+                            onPress={scanMessages}
+                        />
+                    </>
+                )}
+            </ScrollView>
         </AnimatedBackground>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: Spacing.lg,
+    scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: Spacing.lg,
+        paddingTop: 60,
+        paddingBottom: Spacing.xxl,
     },
-    card: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: FontSizes.xl,
+    appTitle: {
+        fontSize: FontSizes.xxl,
         fontWeight: '800',
         color: Colors.textPrimary,
-        textAlign: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: Spacing.lg,
     },
-    subtitle: {
+    center: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Spacing.xxl,
+    },
+    scanningText: {
+        fontSize: FontSizes.md,
+        color: Colors.textSecondary,
+        marginTop: Spacing.md,
+    },
+    unsupportedText: {
         fontSize: FontSizes.md,
         color: Colors.textSecondary,
         textAlign: 'center',
-        lineHeight: 24,
+    },
+    spacer: {
+        height: Spacing.md,
     },
 });

@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tempexpoinit",
+    "scheme": "upiparser",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -19,7 +19,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.READ_SMS",
+        "android.permission.READ_SMS"
+      ],
+      "package": "com.anonymous.upiparser"
     },
     "web": {
       "output": "static",
@@ -38,11 +43,18 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "./plugins/withSmsPermission"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1048374b-1074-4929-8579-580d34c7126e"
+      }
     }
   }
 }

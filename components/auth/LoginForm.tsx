@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,6 +11,8 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onToggle }: LoginFormProps) {
+    const router = useRouter();
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Welcome Back</Text>
@@ -32,7 +35,18 @@ export default function LoginForm({ onToggle }: LoginFormProps) {
                     <Text style={styles.forgotText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
-                <GradientButton title="Sign In" style={{ marginTop: Spacing.sm }} />
+                <GradientButton
+                    title="Sign In"
+                    onPress={() => router.replace('/home')}
+                    style={{ marginTop: Spacing.sm }}
+                />
+
+                <TouchableOpacity
+                    onPress={() => router.replace('/home')}
+                    style={styles.skipButton}
+                >
+                    <Text style={styles.skipText}>Skip for now</Text>
+                </TouchableOpacity>
             </View>
 
             <View style={styles.footer}>
@@ -70,6 +84,15 @@ const styles = StyleSheet.create({
     forgotText: {
         color: Colors.cyberCyan,
         fontSize: FontSizes.sm,
+    },
+    skipButton: {
+        marginTop: Spacing.md,
+        alignItems: 'center',
+    },
+    skipText: {
+        color: Colors.textSecondary,
+        fontSize: FontSizes.sm,
+        textDecorationLine: 'underline',
     },
     footer: {
         flexDirection: 'row',
