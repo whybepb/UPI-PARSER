@@ -1,8 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { checkSmsPermission, getUpiTransactions, requestSmsPermission } from '../services/smsReader';
-import { addManualTransaction, loadBudget, loadTransactions, saveBudget, seedMerchantMappings, upsertTransactions } from '../services/data/transactionsRepo';
-import { SpendSummary, UpiTransaction } from '../services/types';
+import {
+    addManualTransaction,
+    loadBudget,
+    loadTransactions,
+    saveBudget,
+    seedMerchantMappings,
+    upsertTransactions,
+} from '../services/data/transactionsRepo';
+import { BudgetConfig, SpendSummary, TransactionType, UpiTransaction } from '../services/types';
 
 const EMPTY_SUMMARY: SpendSummary = {
     totalSpent: 0,
@@ -13,7 +20,32 @@ const EMPTY_SUMMARY: SpendSummary = {
     transactions: [],
 };
 
-const TransactionContext = createContext<any>(null);
+type TransactionFilter = 'all' | 'debits' | 'credits' | 'this-week';
+
+type ManualInput = {
+    type: TransactionType;
+    amount: number;
+    merchant: string;
+    category: string;
+    date?: Date;
+    notes?: string;
+};
+
+type TransactionContextType = {
+    summary: SpendSummary;
+    budget: BudgetConfig | null;
+    isLoading: boolean;
+    isUnsupported: boolean;
+    hasPermission: boolean;
+    scanMessages: (maxMessages?: number) => Promise<void>;
+    requestPermissionAndScan: () => Promise<void>;
+    getFilteredTransactions: (filter: TransactionFilter) => UpiTransaction[];
+    getCategorySummary: () => Record<string, number>;
+    addManual: (input: ManualInput) => Promise<void>;
+    setMonthlyBudget: (amount: number) => Promise<void>;
+};
+
+const TransactionContext = createContext<TransactionContextType | null>(null);
 
 function computeSummary(transactions: UpiTransaction[]): SpendSummary {
     const totalSpent = transactions.filter((t) => t.type === 'debit').reduce((sum, t) => sum + t.amount, 0);
@@ -25,7 +57,7 @@ function computeSummary(transactions: UpiTransaction[]): SpendSummary {
 
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
     const [summary, setSummary] = useState<SpendSummary>(EMPTY_SUMMARY);
-    const [budget, setBudget] = useState<any>(null);
+    const [budget, setBudget] = useState<BudgetConfig | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [hasPermission, setHasPermission] = useState(false);
     const isUnsupported = Platform.OS !== 'android';
@@ -54,7 +86,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         if (granted) await scanMessages();
     }, [isUnsupported, scanMessages]);
 
-    const addManual = useCallback(async (input: any) => {
+    const addManual = useCallback(async (input: ManualInput) => {
         const now = input.date ?? new Date();
         await addManualTransaction({
             type: input.type,
@@ -92,7 +124,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         })();
     }, [isUnsupported, refreshFromRepo, scanMessages]);
 
-    const getFilteredTransactions = useCallback((filter: string) => {
+    const getFilteredTransactions = useCallback((filter: TransactionFilter) => {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - 7);
         return summary.transactions.filter((txn) => {
@@ -105,12 +137,12 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const getCategorySummary = useCallback(() => summary.transactions
         .filter((txn) => txn.type === 'debit')
-        .reduce((acc: Record<string, number>, txn) => {
+        .reduce<Record<string, number>>((acc, txn) => {
             acc[txn.category] = (acc[txn.category] ?? 0) + txn.amount;
             return acc;
         }, {}), [summary.transactions]);
 
-    const value = useMemo(() => ({
+    const value: TransactionContextType = useMemo(() => ({
         summary,
         budget,
         isLoading,
@@ -127,7 +159,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     return React.createElement(TransactionContext.Provider, { value }, children);
 }
 
-export function useTransactions() {
+export function useTransactions(): TransactionContextType {
     const context = useContext(TransactionContext);
     if (!context) throw new Error('useTransactions must be used within a TransactionProvider');
     return context;
