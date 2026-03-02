@@ -37,12 +37,12 @@ export default function LoginForm({ onToggle }: LoginFormProps) {
 
                 <GradientButton
                     title="Sign In"
-                    onPress={() => router.replace('/home')}
+                    onPress={() => router.replace('/(tabs)')}
                     style={{ marginTop: Spacing.sm }}
                 />
 
                 <TouchableOpacity
-                    onPress={() => router.replace('/home')}
+                    onPress={() => router.replace('/(tabs)')}
                     style={styles.skipButton}
                 >
                     <Text style={styles.skipText}>Skip for now</Text>
@@ -50,7 +50,7 @@ export default function LoginForm({ onToggle }: LoginFormProps) {
             </View>
 
             <View style={styles.footer}>
-                <Text style={styles.footerText}>Don't have an account? </Text>
+                <Text style={styles.footerText}>Don’t have an account? </Text>
                 <TouchableOpacity onPress={onToggle}>
                     <Text style={styles.footerLink}>Sign Up</Text>
                 </TouchableOpacity>
