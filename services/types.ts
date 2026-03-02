@@ -15,6 +15,7 @@ export interface UpiTransaction {
     type: TransactionType;
     amount: number;
     merchant: string;
+    category: string;
     date: Date;
     bank: string;
     upiRef: string | null;

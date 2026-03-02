@@ -1,3 +1,4 @@
+import { categorizeTransaction } from './categoryEngine';
 import { SmsMessage, SpendSummary, TransactionType, UpiTransaction } from './types';
 
 // Common UPI keywords indicating a transaction
@@ -176,6 +177,7 @@ export function parseSms(sms: SmsMessage): UpiTransaction | null {
         type,
         amount,
         merchant,
+        category: categorizeTransaction(merchant),
         date: new Date(sms.date),
         bank,
         upiRef,
