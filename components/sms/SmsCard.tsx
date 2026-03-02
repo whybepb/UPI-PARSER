@@ -6,6 +6,7 @@ import { UpiTransaction } from '../../services/types';
 import { Colors, Spacing } from '../../constants/theme';
 
 export default function SmsCard({ txn }: { txn: UpiTransaction }) {
+    const reviewNeeded = txn.category === 'uncategorized' || txn.merchant === 'Unknown';
     const reviewNeeded = txn.category === 'unknown' || txn.merchant === 'Unknown';
     const info = getCategoryInfo(txn.category);
 
