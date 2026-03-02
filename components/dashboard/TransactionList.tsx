@@ -10,6 +10,13 @@ interface TransactionListProps { transactions: UpiTransaction[]; }
 const iconByCategory: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
     food: UtensilsCrossed,
     travel: Car,
+interface TransactionListProps {
+    transactions: UpiTransaction[];
+}
+
+const iconByCategory: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+    food: UtensilsCrossed,
+    transport: Car,
     shopping: ShoppingBag,
     groceries: ShoppingCart,
     fuel: Fuel,
@@ -17,6 +24,7 @@ const iconByCategory: Record<string, React.ComponentType<{ size?: number; color?
     salary: WalletCards,
     entertainment: Clapperboard,
     uncategorized: CircleHelp,
+    unknown: CircleHelp,
 };
 
 export default function TransactionList({ transactions }: TransactionListProps) {
@@ -35,11 +43,16 @@ export default function TransactionList({ transactions }: TransactionListProps) 
 function TransactionItem({ txn }: { txn: UpiTransaction }) {
     const info = CATEGORY_MAP[txn.category] ?? CATEGORY_MAP.uncategorized;
     const Icon = iconByCategory[txn.category] ?? iconByCategory.uncategorized;
+    const info = CATEGORY_MAP[txn.category] ?? CATEGORY_MAP.unknown;
+    const Icon = iconByCategory[txn.category] ?? iconByCategory.unknown;
     const isDebit = txn.type === 'debit';
 
     return (
         <View style={styles.itemRow}>
             <View style={[styles.iconCircle, { backgroundColor: '#23242a' }]}><Icon size={18} color={info.color} /></View>
+            <View style={[styles.iconCircle, { backgroundColor: `${info.color}22` }]}>
+                <Icon size={18} color={info.color} />
+            </View>
             <View style={styles.itemInfo}>
                 <Text style={styles.itemMerchant}>{txn.merchant}</Text>
                 <Text style={styles.itemMeta}>{txn.bank} • {txn.date.toLocaleDateString()}</Text>
@@ -51,6 +64,7 @@ function TransactionItem({ txn }: { txn: UpiTransaction }) {
 
 const styles = StyleSheet.create({
     itemRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, backgroundColor: '#141417', borderRadius: 22 },
+    itemRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, backgroundColor: '#C', borderRadius: 22 },
     iconCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
     itemInfo: { flex: 1 },
     itemMerchant: { color: Colors.textPrimary, fontWeight: '700', fontSize: FontSizes.md },
