@@ -14,4 +14,16 @@ initSchema().then(() => {
     // eslint-disable-next-line no-console
     console.log(`SyncSpend backend listening on ${port}`);
   });
+}).catch((error) => {
+  // eslint-disable-next-line no-console
+  console.error('Backend startup failed:', error?.message || error);
+  if (error?.code) {
+    // eslint-disable-next-line no-console
+    console.error('Error code:', error.code);
+  }
+  if (Array.isArray(error?.errors)) {
+    // eslint-disable-next-line no-console
+    console.error('Aggregate errors:', error.errors);
+  }
+  process.exit(1);
 });

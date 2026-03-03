@@ -13,12 +13,16 @@ interface GradientButtonProps {
     title: string;
     onPress?: () => void;
     style?: ViewStyle;
+    disabled?: boolean;
+    leftIcon?: React.ReactNode;
 }
 
 export default function GradientButton({
     title,
     onPress,
     style,
+    disabled = false,
+    leftIcon,
 }: GradientButtonProps) {
     const scale = useRef(new Animated.Value(1)).current;
 
@@ -44,13 +48,15 @@ export default function GradientButton({
                 onPress={onPress}
                 onPressIn={handlePressIn}
                 onPressOut={handlePressOut}
+                disabled={disabled}
             >
                 <LinearGradient
                     colors={[Colors.buttonGradientStart, Colors.buttonGradientEnd]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={styles.gradient}
+                    style={[styles.gradient, disabled && styles.gradientDisabled]}
                 >
+                    {leftIcon ? <>{leftIcon}</> : null}
                     <Text style={styles.text}>{title}</Text>
                 </LinearGradient>
             </Pressable>
@@ -70,8 +76,13 @@ const styles = StyleSheet.create({
     gradient: {
         height: 54,
         borderRadius: Radii.md,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 8,
+    },
+    gradientDisabled: {
+        opacity: 0.6,
     },
     text: {
         color: '#000',

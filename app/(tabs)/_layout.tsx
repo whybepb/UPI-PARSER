@@ -1,12 +1,12 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
-/* Minimal single-letter/symbol icons — no emojis, matches the SyncSpend OLED style */
-function TabIcon({ label, active }: { label: string; active?: boolean }) {
+function TabIcon({ name, focused }: { name: string; focused?: boolean }) {
   return (
-    <View style={[s.iconWrap, active && s.iconWrapActive]}>
-      <Text style={[s.iconText, active && s.iconTextActive]}>{label}</Text>
+    <View style={[s.iconWrap, focused && s.iconWrapActive]}>
+      <MaterialIcons name={name as never} size={24} color={focused ? '#fff' : '#707070'} />
     </View>
   );
 }
@@ -29,17 +29,17 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: s.bar,
         tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#525252',
+        tabBarInactiveTintColor: '#707070',
         tabBarItemStyle: { paddingTop: 6 },
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="⌂" active={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon name="home-filled" focused={focused} /> }}
       />
       <Tabs.Screen
         name="insights"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="◎" active={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon name="bar-chart" focused={focused} /> }}
       />
       <Tabs.Screen
         name="quick-add"
@@ -50,11 +50,11 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="sms-feed"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="✉" active={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon name="account-balance-wallet" focused={focused} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="●" active={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} /> }}
       />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
@@ -88,10 +88,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  iconText: { fontSize: 20, color: '#525252' },
-  iconTextActive: { color: '#fff' },
   plusOuter: { marginTop: -16 },
   plusBtn: {
     width: 52,
@@ -106,5 +104,5 @@ const s = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
   },
-  plusText: { fontSize: 26, color: '#000', fontWeight: '300', marginTop: -2 },
+  plusText: { fontSize: 34, color: '#000', fontWeight: '300', marginTop: -4 },
 });
