@@ -130,12 +130,16 @@ export async function deleteAllTransactions(): Promise<void> {
 export async function saveBudget(budget: BudgetConfig): Promise<void> {
     try {
         const db = await getDb();
-        if (!db) return;
+        if (!db) {
+            throw new Error('SQLite is unavailable. Build the app with native modules.');
+        }
         await db.runAsync(
             'INSERT OR REPLACE INTO budgets (month_key, amount) VALUES (?, ?)',
             budget.monthKey, budget.amount,
         );
-    } catch { /* graceful fallback */ }
+    } catch (e: any) {
+        throw new Error(e?.message ?? 'Failed to save budget');
+    }
 }
 
 export async function loadBudget(): Promise<BudgetConfig | null> {

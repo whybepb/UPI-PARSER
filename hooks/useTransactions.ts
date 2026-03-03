@@ -18,8 +18,8 @@ type TransactionContextType = {
     getFilteredTransactions: (filter: TransactionFilter) => UpiTransaction[];
     getCategorySummary: () => Record<string, number>;
     addManual: (entry: { type: 'debit' | 'credit'; amount: number; merchant: string; category: string }) => Promise<void>;
-    setMonthlyBudget: (amount: number) => void;
-    updateCategory: (txnId: string, newCategory: string) => void;
+    setMonthlyBudget: (amount: number) => Promise<void>;
+    updateCategory: (txnId: string, newCategory: string) => Promise<void>;
 };
 
 const EMPTY_SUMMARY: SpendSummary = {
@@ -149,9 +149,9 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
             monthKey: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
             amount,
         };
-        setBudget(config);
         // Persist to SQLite
         await db.saveBudget(config);
+        setBudget(config);
     }, []);
 
     const updateCategory = useCallback(async (txnId: string, newCategory: string) => {

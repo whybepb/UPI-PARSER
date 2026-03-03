@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "561588093090",
+    "project_id": "syncspend-76602",
+    "storage_bucket": "syncspend-76602.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:561588093090:android:7d9b7d51218b706601d7fb",
+        "android_client_info": {
+          "package_name": "com.anonymous.syncspend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "561588093090-66g31li3cptj7agr5q3h1u4sffv1e2t9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.syncspend",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "561588093090-opqg5b0tpeghqh5b9iv8ktber4tav2jh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWmGuzNrUS7B-aloyY1G38rEYHgvf9aRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "561588093090-opqg5b0tpeghqh5b9iv8ktber4tav2jh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

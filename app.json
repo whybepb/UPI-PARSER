@@ -24,7 +24,8 @@
         "android.permission.READ_SMS",
         "android.permission.READ_SMS"
       ],
-      "package": "com.anonymous.syncspend"
+      "package": "com.anonymous.syncspend",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -45,7 +46,8 @@
         }
       ],
       "./plugins/withSmsPermission",
-      "expo-sqlite"
+      "expo-sqlite",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,9 +1,8 @@
-import { useRouter } from 'expo-router';
-import { Lock, Mail } from 'lucide-react-native';
-import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors, FontSizes, Spacing } from '../../constants/theme';
-import GlassInput from './GlassInput';
+import { useAuth } from '../../hooks/useAuth';
 import GradientButton from './GradientButton';
 
 interface LoginFormProps {
@@ -11,48 +10,41 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onToggle }: LoginFormProps) {
-    const router = useRouter();
+    const { signInWithGoogle } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const onGoogleSignIn = async () => {
+        try {
+            setError(null);
+            setIsSubmitting(true);
+            await signInWithGoogle();
+        } catch (e: any) {
+            setError(e?.message ?? 'Unable to sign in with Google.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
+            <Text style={styles.subtitle}>Sign in with Google to continue</Text>
 
-            <View style={styles.form}>
-                <GlassInput
-                    placeholder="Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    icon={<Mail size={18} color={Colors.textSecondary} />}
-                />
-                <GlassInput
-                    placeholder="Password"
-                    secureTextEntry
-                    icon={<Lock size={18} color={Colors.textSecondary} />}
-                />
+            <GradientButton
+                title={isSubmitting ? 'Signing In...' : 'Continue with Google'}
+                onPress={onGoogleSignIn}
+                disabled={isSubmitting}
+                style={{ marginTop: Spacing.sm }}
+                leftIcon={<MaterialIcons name="account-circle" size={18} color="#000" />}
+            />
 
-                <TouchableOpacity style={styles.forgot}>
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
-                </TouchableOpacity>
-
-                <GradientButton
-                    title="Sign In"
-                    onPress={() => router.replace('/(tabs)')}
-                    style={{ marginTop: Spacing.sm }}
-                />
-
-                <TouchableOpacity
-                    onPress={() => router.replace('/(tabs)')}
-                    style={styles.skipButton}
-                >
-                    <Text style={styles.skipText}>Skip for now</Text>
-                </TouchableOpacity>
-            </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <View style={styles.footer}>
-                <Text style={styles.footerText}>Don’t have an account? </Text>
-                <TouchableOpacity onPress={onToggle}>
-                    <Text style={styles.footerLink}>Sign Up</Text>
+                <Text style={styles.footerText}>Need a new account? </Text>
+                <TouchableOpacity onPress={onToggle} disabled={isSubmitting}>
+                    <Text style={styles.footerLink}>Switch to Sign Up</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -72,27 +64,12 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: FontSizes.md,
         color: Colors.textSecondary,
-        marginBottom: Spacing.xl,
+        marginBottom: Spacing.lg,
     },
-    form: {
-        width: '100%',
-    },
-    forgot: {
-        alignSelf: 'flex-end',
-        marginBottom: Spacing.sm,
-    },
-    forgotText: {
-        color: Colors.cyberCyan,
+    errorText: {
+        color: '#f87171',
         fontSize: FontSizes.sm,
-    },
-    skipButton: {
         marginTop: Spacing.md,
-        alignItems: 'center',
-    },
-    skipText: {
-        color: Colors.textSecondary,
-        fontSize: FontSizes.sm,
-        textDecorationLine: 'underline',
     },
     footer: {
         flexDirection: 'row',

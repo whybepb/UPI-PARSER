@@ -1,8 +1,10 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { CATEGORY_MAP } from '../../constants/categoryTheme';
 import { useTransactions } from '../../hooks/useTransactions';
+import { exportTransactionsCsv } from '../../services/exportService';
 
 type Period = 'week' | 'month' | 'year';
 
@@ -10,6 +12,7 @@ function fmt(n: number) { return '₹' + n.toLocaleString('en-IN', { maximumFrac
 
 export default function InsightsTab() {
   const [period, setPeriod] = useState<Period>('month');
+  const [isExporting, setIsExporting] = useState(false);
   const { summary, getCategorySummary } = useTransactions();
 
   const filteredTotal = useMemo(() => {
@@ -48,13 +51,29 @@ export default function InsightsTab() {
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
 
+  const onExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    const result = await exportTransactionsCsv(summary.transactions);
+    setIsExporting(false);
+
+    if (!result.ok) {
+      Alert.alert('Export failed', result.error ?? 'Unable to export data.');
+      return;
+    }
+
+    Alert.alert('Export complete', result.path ? `CSV generated at:\n${result.path}` : 'CSV export is ready.');
+  };
+
   return (
     <ScrollView style={s.page} contentContainerStyle={s.container}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.headerBack}>←</Text>
+        <MaterialIcons name="insights" size={22} color="#fff" />
         <Text style={s.headerTitle}>Spending Insights</Text>
-        <TouchableOpacity style={s.exportBtn}><Text style={s.exportText}>Export</Text></TouchableOpacity>
+        <TouchableOpacity style={s.exportBtn} onPress={() => void onExport()} disabled={isExporting}>
+          <Text style={s.exportText}>{isExporting ? 'Exporting...' : 'Export'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Period Toggle */}
@@ -114,7 +133,9 @@ export default function InsightsTab() {
       {/* Categories Header */}
       <View style={s.catHeader}>
         <Text style={s.catHeaderTitle}>Categories</Text>
-        <View style={s.sortBtn}><Text style={{ color: '#fff', fontSize: 14 }}>⇅</Text></View>
+        <View style={s.sortBtn}>
+          <MaterialIcons name="sort" size={16} color="#fff" />
+        </View>
       </View>
 
       {/* Category Rows */}
@@ -152,7 +173,6 @@ const s = StyleSheet.create({
   container: { paddingHorizontal: 20, paddingTop: 48, paddingBottom: 120 },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  headerBack: { color: '#fff', fontSize: 22, fontWeight: '700', paddingRight: 8 },
   headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
   exportBtn: { borderWidth: 1, borderColor: '#333', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 },
   exportText: { color: '#fff', fontSize: 13, fontWeight: '700' },

@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList, Modal, ScrollView, StyleSheet, Text,
@@ -87,9 +88,9 @@ export default function SmsFeedTab() {
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <ScrollView style={s.page} contentContainerStyle={s.container}>
         <View style={s.header}>
-          <Text style={s.headerBack}>←</Text>
+          <MaterialIcons name="sms" size={22} color="#fff" />
           <Text style={s.headerTitle}>SMS Feed</Text>
-          <Text style={{ color: '#fff', fontSize: 20 }}>⚙</Text>
+          <MaterialIcons name="settings" size={20} color="#fff" />
         </View>
 
         <View style={s.tabRow}>
@@ -157,7 +158,6 @@ const s = StyleSheet.create({
   container: { paddingHorizontal: 16, paddingTop: 48, paddingBottom: 120 },
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#171717', paddingBottom: 12 },
-  headerBack: { color: '#fff', fontSize: 22, fontWeight: '700' },
   headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
 
   tabRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
