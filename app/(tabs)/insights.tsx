@@ -1,84 +1,144 @@
-import { ArrowLeft, SlidersHorizontal } from 'lucide-react-native';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { CATEGORY_MAP } from '../../constants/categoryTheme';
 import { useTransactions } from '../../hooks/useTransactions';
 
+type Period = 'week' | 'month' | 'year';
+
+function fmt(n: number) { return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+
 export default function InsightsTab() {
+  const [period, setPeriod] = useState<Period>('month');
   const { summary, getCategorySummary } = useTransactions();
-  const total = summary.totalSpent;
+
+  const filteredTotal = useMemo(() => {
+    const now = new Date();
+    return summary.transactions
+      .filter((txn) => {
+        if (txn.type !== 'debit') return false;
+        const d = txn.date;
+        if (period === 'week') {
+          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+          return d >= weekAgo;
+        }
+        if (period === 'month') {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        return d.getFullYear() === now.getFullYear();
+      })
+      .reduce((s, t) => s + t.amount, 0);
+  }, [summary.transactions, period]);
 
   const data = useMemo(() => {
     const amounts = getCategorySummary();
     return (Object.entries(amounts) as [string, number][])
-      .map(([category, amount]: [string, number]) => ({
+      .map(([category, amount]) => ({
         category,
         amount,
-        count: summary.transactions.filter((txn: any) => txn.type === 'debit' && txn.category === category).length,
+        count: summary.transactions.filter((t) => t.type === 'debit' && t.category === category).length,
       }))
-      .sort((a: any, b: any) => b.amount - a.amount)
-      .slice(0, 5);
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6);
   }, [getCategorySummary, summary.transactions]);
 
-  const radius = 90;
-  const stroke = 20;
+  const total = filteredTotal || summary.totalSpent || 1;
+  const radius = 75;
+  const stroke = 16;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.container}>
-      <View style={styles.top}>
-        <ArrowLeft color="#fff" size={30} />
-        <Text style={styles.title}>Spending Insights</Text>
-        <TouchableOpacity style={styles.exportBtn}><Text style={styles.exportTxt}>Export</Text></TouchableOpacity>
+    <ScrollView style={s.page} contentContainerStyle={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.headerBack}>←</Text>
+        <Text style={s.headerTitle}>Spending Insights</Text>
+        <TouchableOpacity style={s.exportBtn}><Text style={s.exportText}>Export</Text></TouchableOpacity>
       </View>
 
-      <View style={styles.switch}><Text style={styles.muted}>Week</Text><Text style={styles.active}>Month</Text><Text style={styles.muted}>Year</Text></View>
-      <Text style={styles.total}>${total.toFixed(2)}</Text>
-      <Text style={styles.sub}>Total spent this month</Text>
+      {/* Period Toggle */}
+      <View style={s.toggleWrap}>
+        <View style={s.toggleRow}>
+          {(['week', 'month', 'year'] as Period[]).map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[s.toggleBtn, period === p && s.toggleActive]}
+              onPress={() => setPeriod(p)}
+            >
+              <Text style={[s.toggleText, period === p && s.toggleTextActive]}>
+                {p[0].toUpperCase() + p.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
-      <View style={styles.donutWrap}>
-        <Svg width={220} height={220}>
-          <Circle cx={110} cy={110} r={radius} stroke="#2d2f35" strokeWidth={stroke} fill="none" />
+      {/* Total */}
+      <View style={s.totalSection}>
+        <Text style={s.totalValue}>{fmt(filteredTotal)}</Text>
+        <Text style={s.totalLabel}>Total spent this {period}</Text>
+      </View>
+
+      {/* Donut Chart */}
+      <View style={s.donutWrap}>
+        <Svg width={200} height={200}>
+          <Circle cx={100} cy={100} r={radius} stroke="#1a1a1a" strokeWidth={stroke} fill="none" />
           {data.map((item, idx) => {
             const pct = total > 0 ? item.amount / total : 0;
             const dash = pct * circumference;
+            const strokeColor = idx === 0 ? '#ffffff' : idx === 1 ? '#525252' : '#262626';
             const node = (
               <Circle
                 key={item.category}
-                cx={110}
-                cy={110}
-                r={radius}
-                stroke={idx === 0 ? '#f3f4f6' : '#3c3f46'}
+                cx={100} cy={100} r={radius}
+                stroke={strokeColor}
                 strokeWidth={stroke}
                 fill="none"
                 strokeDasharray={`${dash} ${circumference}`}
                 strokeDashoffset={-offset}
                 rotation={-90}
-                origin="110,110"
+                origin="100,100"
               />
             );
             offset += dash;
             return node;
           })}
         </Svg>
-        <View style={styles.center}><Text style={styles.centerBig}>{total ? Math.round(((data[0]?.amount ?? 0) / total) * 100) : 0}%</Text><Text style={styles.centerSub}>ESSENTIALS</Text></View>
+        <View style={s.donutCenter}>
+          <Text style={s.donutPct}>{total > 0 ? Math.round(((data[0]?.amount ?? 0) / total) * 100) : 0}%</Text>
+          <Text style={s.donutLabel}>ESSENTIALS</Text>
+        </View>
       </View>
 
-      <View style={styles.catHead}><Text style={styles.catTitle}>Categories</Text><View style={styles.filterBtn}><SlidersHorizontal color="#fff" size={18} /></View></View>
+      {/* Categories Header */}
+      <View style={s.catHeader}>
+        <Text style={s.catHeaderTitle}>Categories</Text>
+        <View style={s.sortBtn}><Text style={{ color: '#fff', fontSize: 14 }}>⇅</Text></View>
+      </View>
 
-      {data.map((item) => {
+      {/* Category Rows */}
+      {data.map((item, idx) => {
         const pct = total ? Math.round((item.amount / total) * 100) : 0;
+        const cat = CATEGORY_MAP[item.category] ?? CATEGORY_MAP.uncategorized;
+        const isTop = idx === 0;
         return (
-          <View key={item.category} style={styles.catRow}>
-            <View style={[styles.catIcon, item.category === 'shopping' && { backgroundColor: '#fff' }]}> 
-              <Text style={[styles.catIconText, item.category === 'shopping' && { color: '#000' }]}>{CATEGORY_MAP[item.category]?.label?.[0] ?? 'U'}</Text>
+          <View key={item.category} style={s.catRow}>
+            <View style={[s.catIcon, isTop && s.catIconTop]}>
+              <Text style={[s.catIconText, isTop && s.catIconTextTop]}>{cat.label[0]}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.catTop}><Text style={styles.catName}>{CATEGORY_MAP[item.category]?.label ?? item.category}</Text><Text style={styles.catAmt}>${item.amount.toFixed(2)}</Text></View>
-              <View style={styles.catMeta}><Text style={styles.catCount}>{item.count} transactions</Text><Text style={styles.pct}>{pct}%</Text></View>
-              <View style={styles.barBg}><View style={[styles.bar, { width: `${pct}%`, backgroundColor: item.category === 'shopping' ? '#f3f4f6' : '#5b5b61' }]} /></View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <View style={s.catMeta}>
+                <Text style={s.catName}>{cat.label}</Text>
+                <Text style={s.catAmount}>{fmt(item.amount)}</Text>
+              </View>
+              <View style={s.catMeta}>
+                <Text style={s.catCount}>{item.count} transactions</Text>
+                <Text style={s.catPct}>{pct}%</Text>
+              </View>
+              <View style={s.barBg}>
+                <View style={[s.bar, { width: `${pct}%`, backgroundColor: isTop ? '#fff' : '#525252' }]} />
+              </View>
             </View>
           </View>
         );
@@ -87,34 +147,53 @@ export default function InsightsTab() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#000' },
-  container: { padding: 20, paddingTop: 34, paddingBottom: 130 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: '#fff', fontSize: 44 / 2, fontWeight: '800' },
-  exportBtn: { borderColor: '#4b5563', borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
-  exportTxt: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  switch: { marginTop: 22, flexDirection: 'row', backgroundColor: '#141417', borderRadius: 20, borderWidth: 1, borderColor: '#292a2f', padding: 6, justifyContent: 'space-between' },
-  muted: { color: '#8d9199', paddingHorizontal: 34, paddingVertical: 12, fontSize: 18, fontWeight: '700' },
-  active: { color: '#000', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 34, paddingVertical: 12, fontSize: 18, fontWeight: '800' },
-  total: { marginTop: 34, color: '#fff', textAlign: 'center', fontSize: 86 / 2, fontWeight: '900' },
-  sub: { color: '#9ca3af', textAlign: 'center', marginTop: 6, fontSize: 20 },
-  donutWrap: { marginTop: 22, alignItems: 'center', justifyContent: 'center' },
-  center: { position: 'absolute', alignItems: 'center' },
-  centerBig: { color: '#fff', fontWeight: '900', fontSize: 66 / 2 },
-  centerSub: { color: '#9ca3af', marginTop: 4, fontWeight: '700', letterSpacing: 1 },
-  catHead: { marginTop: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  catTitle: { color: '#fff', fontSize: 50 / 2, fontWeight: '800' },
-  filterBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#191a20', alignItems: 'center', justifyContent: 'center' },
-  catRow: { flexDirection: 'row', gap: 12, marginTop: 18, alignItems: 'center' },
-  catIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#292a2f', alignItems: 'center', justifyContent: 'center' },
-  catIconText: { color: '#fff', fontWeight: '700' },
-  catTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  catName: { color: '#fff', fontSize: 44 / 2, fontWeight: '800' },
-  catAmt: { color: '#fff', fontSize: 44 / 2, fontWeight: '800' },
-  catMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  catCount: { color: '#9ca3af' },
-  pct: { color: '#9ca3af', fontWeight: '700' },
-  barBg: { height: 8, backgroundColor: '#1f2025', borderRadius: 99 },
-  bar: { height: 8, borderRadius: 99 },
+  container: { paddingHorizontal: 20, paddingTop: 48, paddingBottom: 120 },
+
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  headerBack: { color: '#fff', fontSize: 22, fontWeight: '700', paddingRight: 8 },
+  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+  exportBtn: { borderWidth: 1, borderColor: '#333', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 },
+  exportText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  toggleWrap: { marginBottom: 24 },
+  toggleRow: {
+    flexDirection: 'row', backgroundColor: '#171717', borderRadius: 999, padding: 4,
+    borderWidth: 1, borderColor: '#262626',
+  },
+  toggleBtn: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
+  toggleActive: { backgroundColor: '#fff' },
+  toggleText: { color: '#6b7280', fontSize: 14, fontWeight: '700' },
+  toggleTextActive: { color: '#000', fontWeight: '800' },
+
+  totalSection: { alignItems: 'center', marginBottom: 20 },
+  totalValue: { color: '#fff', fontSize: 36, fontWeight: '900', letterSpacing: -1.5 },
+  totalLabel: { color: '#9ca3af', fontSize: 14, marginTop: 4 },
+
+  donutWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
+  donutCenter: { position: 'absolute', alignItems: 'center' },
+  donutPct: { color: '#fff', fontSize: 28, fontWeight: '900' },
+  donutLabel: { color: '#9ca3af', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2 },
+
+  catHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  catHeaderTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  sortBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#171717', alignItems: 'center', justifyContent: 'center' },
+
+  catRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  catIcon: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  catIconTop: { backgroundColor: '#fff', borderColor: '#fff' },
+  catIconText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  catIconTextTop: { color: '#000' },
+  catMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  catName: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  catAmount: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  catCount: { color: '#6b7280', fontSize: 12, marginTop: 2 },
+  catPct: { color: '#6b7280', fontSize: 12, fontWeight: '700', marginTop: 2 },
+  barBg: { height: 4, backgroundColor: '#171717', borderRadius: 99, marginTop: 6 },
+  bar: { height: 4, borderRadius: 99 },
 });

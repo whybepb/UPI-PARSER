@@ -1,13 +1,22 @@
 import { Tabs } from 'expo-router';
-import { BarChart3, CircleUserRound, House, MessageSquareMore, Plus, Wallet } from 'lucide-react-native';
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { Colors } from '../../constants/theme';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
-function PlusButton() {
+/* Minimal single-letter/symbol icons — no emojis, matches the SyncSpend OLED style */
+function TabIcon({ label, active }: { label: string; active?: boolean }) {
   return (
-    <View style={styles.plusWrap}>
-      <View style={styles.plusBtn}><Plus size={28} color="#000" /></View>
+    <View style={[s.iconWrap, active && s.iconWrapActive]}>
+      <Text style={[s.iconText, active && s.iconTextActive]}>{label}</Text>
+    </View>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <View style={s.plusOuter}>
+      <View style={s.plusBtn}>
+        <Text style={s.plusText}>+</Text>
+      </View>
     </View>
   );
 }
@@ -18,48 +27,84 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.bar,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarStyle: s.bar,
+        tabBarActiveTintColor: '#ffffff',
+        tabBarInactiveTintColor: '#525252',
+        tabBarItemStyle: { paddingTop: 6 },
       }}
     >
-      <Tabs.Screen name="index" options={{ tabBarIcon: ({ color, size }) => <House color={color} size={size} /> }} />
-      <Tabs.Screen name="insights" options={{ tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} /> }} />
-      <Tabs.Screen name="quick-add" options={{ tabBarIcon: () => <PlusButton /> }} />
       <Tabs.Screen
-        name="sms-feed"
+        name="index"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="⌂" active={focused} /> }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="◎" active={focused} /> }}
+      />
+      <Tabs.Screen
+        name="quick-add"
         options={{
-          tabBarIcon: ({ color, size, focused }) =>
-            focused ? <MessageSquareMore color={color} size={size} /> : <Wallet color={color} size={size} />,
+          tabBarIcon: () => <PlusIcon />,
+          tabBarItemStyle: { paddingTop: 0 },
         }}
       />
-      <Tabs.Screen name="profile" options={{ tabBarIcon: ({ color, size }) => <CircleUserRound color={color} size={size} /> }} />
+      <Tabs.Screen
+        name="sms-feed"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="✉" active={focused} /> }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ tabBarIcon: ({ focused }) => <TabIcon label="●" active={focused} /> }}
+      />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   bar: {
     position: 'absolute',
-    left: 18,
-    right: 18,
-    bottom: Platform.OS === 'ios' ? 20 : 14,
-    borderRadius: 32,
-    height: 72,
-    backgroundColor: '#16161a',
-    borderTopColor: '#2a2a2f',
-    borderTopWidth: 1,
+    left: 16,
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 24 : 12,
+    borderRadius: 999,
+    height: 64,
+    backgroundColor: '#171717',
+    borderTopWidth: 0,
+    borderWidth: 1,
+    borderColor: '#262626',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    paddingBottom: 0,
   },
-  plusWrap: { marginTop: -24 },
-  plusBtn: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#f3f4f6',
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 8,
-    borderColor: '#000',
   },
+  iconWrapActive: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  iconText: { fontSize: 20, color: '#525252' },
+  iconTextActive: { color: '#fff' },
+  plusOuter: { marginTop: -16 },
+  plusBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  plusText: { fontSize: 26, color: '#000', fontWeight: '300', marginTop: -2 },
 });

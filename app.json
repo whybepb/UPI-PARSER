@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "UPI Parser",
-    "slug": "upi-parser",
+    "name": "SyncSpend",
+    "slug": "syncspend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "upiparser",
+    "scheme": "syncspend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -24,7 +24,7 @@
         "android.permission.READ_SMS",
         "android.permission.READ_SMS"
       ],
-      "package": "com.anonymous.upiparser"
+      "package": "com.anonymous.syncspend"
     },
     "web": {
       "output": "static",
@@ -44,7 +44,8 @@
           }
         }
       ],
-      "./plugins/withSmsPermission"
+      "./plugins/withSmsPermission",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

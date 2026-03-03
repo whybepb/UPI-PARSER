@@ -1,51 +1,131 @@
-import { ArrowLeft, ChevronRight, CircleUserRound, CloudUpload, Download, Info, LogOut, Wallet } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const items = [
-  { key: 'cloud', title: 'Cloud Sync', icon: CloudUpload },
-  { key: 'export', title: 'Export Data', icon: Download },
-  { key: 'budget', title: 'Budget Limits', icon: Wallet },
-  { key: 'about', title: 'About', icon: Info },
+const menuItems = [
+  { key: 'budget', title: 'Budget Limits', sub: 'Set monthly spending caps', icon: '₹' },
+  { key: 'export', title: 'Export Data', sub: 'Download CSV of transactions', icon: '↓' },
+  { key: 'sync', title: 'Cloud Sync', sub: 'Coming soon', icon: '↻' },
+  { key: 'about', title: 'About SyncSpend', sub: 'Version 1.0.0', icon: 'i' },
 ];
 
 export default function ProfileTab() {
+  const router = useRouter();
+
   return (
-    <View style={styles.page}>
-      <View style={styles.top}><ArrowLeft color="#fff" size={30} /><Text style={styles.title}>Profile</Text><View style={{ width: 30 }} /></View>
-
-      <View style={styles.avatar}><CircleUserRound color="#8f9098" size={52} /></View>
-      <Text style={styles.name}>Alex Morgan</Text>
-      <Text style={styles.email}>alex.morgan@example.com</Text>
-
-      <View style={styles.list}>
-        {items.map(({ key, title, icon: Icon }) => (
-          <TouchableOpacity key={key} style={styles.item}>
-            <View style={styles.ic}><Icon size={22} color="#111" /></View>
-            <Text style={styles.itemText}>{title}</Text>
-            <ChevronRight color="#111" size={26} />
-          </TouchableOpacity>
-        ))}
+    <ScrollView style={s.page} contentContainerStyle={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Profile</Text>
       </View>
 
-      <TouchableOpacity style={styles.logout}><LogOut color="#fff" size={24} /><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
-      <Text style={styles.version}>Version 2.4.0 (Build 1024)</Text>
-    </View>
+      {/* Avatar Card */}
+      <View style={s.avatarCard}>
+        <View style={s.avatarCircle}>
+          <Text style={s.avatarLetter}>A</Text>
+        </View>
+        <View style={{ marginLeft: 16, flex: 1 }}>
+          <Text style={s.name}>Aarya</Text>
+          <Text style={s.email}>user@syncspend.app</Text>
+        </View>
+        <TouchableOpacity style={s.editBtn}>
+          <Text style={s.editBtnText}>Edit</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Stats */}
+      <View style={s.statsRow}>
+        <View style={s.statBox}>
+          <Text style={s.statValue}>—</Text>
+          <Text style={s.statLabel}>Transactions</Text>
+        </View>
+        <View style={s.statBox}>
+          <Text style={s.statValue}>—</Text>
+          <Text style={s.statLabel}>Categories</Text>
+        </View>
+        <View style={s.statBox}>
+          <Text style={s.statValue}>—</Text>
+          <Text style={s.statLabel}>Months</Text>
+        </View>
+      </View>
+
+      {/* Menu */}
+      <Text style={s.sectionTitle}>Settings</Text>
+      {menuItems.map(({ key, title, sub, icon }) => (
+        <TouchableOpacity
+          key={key}
+          style={s.menuItem}
+          activeOpacity={0.7}
+          onPress={() => key === 'budget' ? router.push('/(tabs)/settings') : undefined}
+        >
+          <View style={s.menuIcon}>
+            <Text style={s.menuIconText}>{icon}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.menuTitle}>{title}</Text>
+            <Text style={s.menuSub}>{sub}</Text>
+          </View>
+          <Text style={{ color: '#525252', fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+      ))}
+
+      {/* Logout */}
+      <TouchableOpacity style={s.logoutBtn}>
+        <Text style={s.logoutText}>Sign Out</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#000', padding: 20, paddingTop: 34 },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: '#fff', fontWeight: '800', fontSize: 23 },
-  avatar: { marginTop: 34, width: 170, height: 170, borderRadius: 85, backgroundColor: '#101115', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#2a2b31' },
-  name: { color: '#fff', textAlign: 'center', fontSize: 46, fontWeight: '800', marginTop: 20 },
-  email: { color: '#9ca3af', textAlign: 'center', fontSize: 34 / 2, marginTop: 6 },
-  list: { marginTop: 26, gap: 14 },
-  item: { backgroundColor: '#f3f4f6', borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center' },
-  ic: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' },
-  itemText: { flex: 1, marginLeft: 14, color: '#0b0b0d', fontSize: 23, fontWeight: '700' },
-  logout: { marginTop: 20, borderWidth: 2, borderColor: '#fff', borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
-  logoutText: { color: '#fff', fontSize: 23, fontWeight: '800' },
-  version: { textAlign: 'center', marginTop: 16, color: '#4b5563', fontSize: 18 },
+const s = StyleSheet.create({
+  page: { flex: 1, backgroundColor: '#000' },
+  container: { paddingHorizontal: 16, paddingTop: 48, paddingBottom: 120 },
+
+  header: { marginBottom: 24 },
+  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+
+  avatarCard: {
+    flexDirection: 'row', alignItems: 'center', padding: 16,
+    backgroundColor: '#121212', borderRadius: 16, borderWidth: 1, borderColor: '#262626',
+    marginBottom: 20,
+  },
+  avatarCircle: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+  },
+  avatarLetter: { color: '#000', fontSize: 22, fontWeight: '800' },
+  name: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  email: { color: '#9ca3af', fontSize: 13, marginTop: 2 },
+  editBtn: { borderWidth: 1, borderColor: '#333', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6 },
+  editBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  statBox: {
+    flex: 1, backgroundColor: '#121212', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: '#262626', alignItems: 'center',
+  },
+  statValue: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  statLabel: { color: '#9ca3af', fontSize: 11, marginTop: 4, fontWeight: '600' },
+
+  sectionTitle: { color: '#9ca3af', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 12, marginLeft: 2 },
+
+  menuItem: {
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+    backgroundColor: '#121212', borderRadius: 14, borderWidth: 1, borderColor: '#262626',
+    marginBottom: 8,
+  },
+  menuIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  menuIconText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  menuTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  menuSub: { color: '#6b7280', fontSize: 12, marginTop: 1 },
+
+  logoutBtn: {
+    marginTop: 20, borderWidth: 1, borderColor: '#333', borderRadius: 14,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  logoutText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
 });

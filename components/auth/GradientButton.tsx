@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     text: {
-        color: '#fff',
+        color: '#000',
         fontSize: FontSizes.md,
         fontWeight: '700',
         letterSpacing: 0.5,

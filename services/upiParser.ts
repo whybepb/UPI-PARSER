@@ -1,14 +1,25 @@
-import { categorizeTransaction } from './categoryEngine';
+import { needsReview, scoreTransaction } from './smartCategorizer';
 import { SmsMessage, SpendSummary, TransactionType, UpiTransaction } from './types';
 
 const UPI_KEYWORDS = ['upi', 'imps', 'neft', 'debited', 'credited', 'sent to', 'received from', 'paid to', 'payment', 'gpay', 'phonepe', 'paytm'];
 const AMOUNT_PATTERNS = [
     /(?:rs\.?|inr\.?|₹|usd|\$)\s*([\d,]+\.?\d*)/i,
-    /(?:amount|amt)[\s:]*(?:rs\.?|inr\.?|₹)?\s*([\d,]+\.?\d*)/i,
+    /(?:amount|amt)[\s:]*(rs\.?|inr\.?|₹)?\s*([\d,]+\.?\d*)/i,
     /([\d,]+\.?\d*)\s*(?:debited|credited)/i,
 ];
 const DEBIT_INDICATORS = ['debited', 'sent', 'paid', 'payment', 'transferred', 'purchase', 'spent'];
 const CREDIT_INDICATORS = ['credited', 'received', 'refund', 'cashback', 'deposit'];
+
+// Option A: Negative keyword filter to reject spam/promotional SMS
+const SPAM_INDICATORS = [
+    'offer', 'bonus', 'join today', 'promo', 'discount', 'coupon', 'cashback offer',
+    'signup bonus', 'welcome bonus', 'reward points', 'expires', 'limited time',
+    'win ', 'won ', 'lucky', 'congratulations', 'claim now', 'free', 'subscribe',
+    'unsubscribe', 'opt out', 'click here', 'download app', 'install now',
+    'gambling', 'bet ', 'casino', 'fantasy', 'dream11', 'rummy',
+    'loan', 'emi available', 'pre-approved', 'credit card offer', 'apply now',
+    'sale ', 'flat ', '% off', 'deal of', 'use code', 'voucher',
+];
 const MERCHANT_PATTERNS = [
     /(?:to|paid to|sent to|transferred to)\s+([A-Za-z0-9\s@._-]+?)(?:\s+(?:on|via|ref|upi|$))/i,
     /(?:from|received from|credited by)\s+([A-Za-z0-9\s@._-]+?)(?:\s+(?:on|via|ref|upi|$))/i,
@@ -19,8 +30,14 @@ const UPI_REF_PATTERNS = [/(?:upi\s*ref[:\s]*|ref\s*no[:\s]*|txn\s*id[:\s]*|ref[
 
 const BANK_MAP: Record<string, string> = { SBIUPI: 'SBI', HDFCBK: 'HDFC', ICICIB: 'ICICI', AXISBK: 'Axis', KOTAKB: 'Kotak', PAYTM: 'Paytm', GPAY: 'Google Pay', PHONEPE: 'PhonePe' };
 
+function isPromotionalSms(body: string): boolean {
+    const lower = body.toLowerCase();
+    return SPAM_INDICATORS.some((kw) => lower.includes(kw));
+}
+
 function isUpiMessage(body: string): boolean {
     const lower = body.toLowerCase();
+    if (isPromotionalSms(body)) return false;
     return UPI_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
@@ -76,9 +93,10 @@ export function parseSms(sms: SmsMessage): UpiTransaction | null {
     const { merchant, confidence: merchantConfidence } = extractMerchant(sms.body);
     const upiRef = extractUpiRef(sms.body);
     const bank = detectBank(sms.address);
-    const category = categorizeTransaction(merchant, type);
-    const confidence = Number(((amountConfidence + merchantConfidence) / 2).toFixed(2));
-    const reviewNeeded = category === 'uncategorized' || merchant === 'Unknown' || confidence < 0.6;
+    const scored = scoreTransaction(merchant, amount, type, sms.body);
+    const category = scored.category;
+    const confidence = Number(((amountConfidence + merchantConfidence + scored.confidence) / 3).toFixed(2));
+    const reviewNeeded = needsReview(scored) || merchant === 'Unknown' || confidence < 0.5;
 
     return {
         id: sms._id || String(sms.date),
