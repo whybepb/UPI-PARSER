@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
-  FlatList, Modal, ScrollView, StyleSheet, Text,
+  Alert, FlatList, Modal, ScrollView, StyleSheet, Text,
   TouchableOpacity, View,
 } from 'react-native';
 import { useTransactions } from '../../hooks/useTransactions';
@@ -20,8 +20,20 @@ function sectionForDate(date: Date): 'TODAY' | 'YESTERDAY' | 'LAST WEEK' {
   return 'LAST WEEK';
 }
 
-function SmsCard({ txn, onCategorize }: { txn: UpiTransaction; onCategorize: (id: string) => void }) {
+function SmsCard({ txn, onCategorize, onDelete }: { txn: UpiTransaction; onCategorize: (id: string) => void; onDelete: (id: string) => void }) {
   const needsFix = txn.parseStatus !== 'parsed';
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Remove Transaction',
+      `Delete ₹${txn.amount.toFixed(2)} from ${txn.merchant}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => onDelete(txn.id) },
+      ],
+    );
+  };
+
   return (
     <View style={[s.card, needsFix && { opacity: 0.8 }]}>
       <View style={s.cardTop}>
@@ -31,8 +43,8 @@ function SmsCard({ txn, onCategorize }: { txn: UpiTransaction; onCategorize: (id
             {txn.bank.toUpperCase()} • {txn.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => onCategorize(txn.id)}>
-          <Text style={{ color: '#525252', fontSize: 14 }}>{needsFix ? '✎' : '⋯'}</Text>
+        <TouchableOpacity onPress={confirmDelete}>
+          <Text style={{ color: '#ef4444', fontSize: 14 }}>✕</Text>
         </TouchableOpacity>
       </View>
       <View style={s.rawBox}>
@@ -61,7 +73,7 @@ function SmsCard({ txn, onCategorize }: { txn: UpiTransaction; onCategorize: (id
 export default function SmsFeedTab() {
   const [filter, setFilter] = useState<TabFilter>('all');
   const [catModalId, setCatModalId] = useState<string | null>(null);
-  const { summary, updateCategory } = useTransactions();
+  const { summary, updateCategory, deleteTransaction } = useTransactions();
 
   const txns = useMemo(
     () => summary.transactions
@@ -112,7 +124,7 @@ export default function SmsFeedTab() {
             <View key={section}>
               <Text style={s.sectionLabel}>{section}</Text>
               {grouped[section].map((txn) => (
-                <SmsCard key={txn.id} txn={txn} onCategorize={setCatModalId} />
+                <SmsCard key={txn.id} txn={txn} onCategorize={setCatModalId} onDelete={deleteTransaction} />
               ))}
             </View>
           ) : null,

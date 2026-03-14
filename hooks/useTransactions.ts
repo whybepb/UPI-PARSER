@@ -20,6 +20,7 @@ type TransactionContextType = {
     addManual: (entry: { type: 'debit' | 'credit'; amount: number; merchant: string; category: string }) => Promise<void>;
     setMonthlyBudget: (amount: number) => Promise<void>;
     updateCategory: (txnId: string, newCategory: string) => Promise<void>;
+    deleteTransaction: (txnId: string) => Promise<void>;
 };
 
 const EMPTY_SUMMARY: SpendSummary = {
@@ -170,13 +171,18 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         }));
     }, [summary.transactions]);
 
+    const deleteTransaction = useCallback(async (txnId: string) => {
+        await db.deleteTransaction(txnId);
+        setSummary((prev) => buildSummary(prev.transactions.filter((t) => t.id !== txnId)));
+    }, []);
+
     const value = useMemo(() => ({
         summary, isLoading, isUnsupported, hasPermission, budget,
         scanMessages, requestPermissionAndScan, getFilteredTransactions,
-        getCategorySummary, addManual, setMonthlyBudget, updateCategory,
+        getCategorySummary, addManual, setMonthlyBudget, updateCategory, deleteTransaction,
     }), [summary, isLoading, isUnsupported, hasPermission, budget,
         scanMessages, requestPermissionAndScan, getFilteredTransactions,
-        getCategorySummary, addManual, setMonthlyBudget, updateCategory]);
+        getCategorySummary, addManual, setMonthlyBudget, updateCategory, deleteTransaction]);
 
     return React.createElement(TransactionContext.Provider, { value }, children);
 }

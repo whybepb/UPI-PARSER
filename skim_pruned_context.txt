@@ -1,0 +1,390 @@
+# Skim Pruned Context
+# Target: D:\Study\Semester 6\BITS\Study Project\UPI-PARSER
+# Query: How does auth + error handling work?
+# Included files: 13
+# Tokens: 12257 -> 2175 (82.3% reduction)
+
+--- FILE: .expo/types/router.d.ts ---
+/* eslint-disable */
+import * as Router from 'expo-router';
+
+export * from 'expo-router';
+
+declare module 'expo-router' {
+# ... [SKIPPED: lines 7–13] ...
+}
+
+
+--- FILE: hooks/useTransactions.ts ---
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+# ... [SKIPPED: lines 2–2] ...
+import { categorizeTransaction } from '../services/categoryEngine';
+import * as db from '../services/database';
+import { checkSmsPermission, getUpiTransactions, requestSmsPermission } from '../services/smsReader';
+import { BudgetConfig, SpendSummary, UpiTransaction } from '../services/types';
+
+type TransactionFilter = 'all' | 'debits' | 'credits' | 'this-week';
+
+type TransactionContextType = {
+    summary: SpendSummary;
+    isLoading: boolean;
+    isUnsupported: boolean;
+    hasPermission: boolean;
+    budget: BudgetConfig | null;
+    scanMessages: (maxMessages?: number) => Promise<void>;
+    requestPermissionAndScan: () => Promise<void>;
+    getFilteredTransactions: (filter: TransactionFilter) => UpiTransaction[];
+    getCategorySummary: () => Record<string, number>;
+    addManual: (entry: { type: 'debit' | 'credit'; amount: number; merchant: string; category: string }) => Promise<void>;
+    setMonthlyBudget: (amount: number) => Promise<void>;
+    updateCategory: (txnId: string, newCategory: string) => Promise<void>;
+};
+
+const EMPTY_SUMMARY: SpendSummary = {
+    totalSpent: 0, totalReceived: 0, transactionCount: 0, debitCount: 0, creditCount: 0, transactions: [],
+};
+
+# ... [SKIPPED: lines 29–39] ...
+
+# ... [SKIPPED: lines 41–41] ...
+
+# ... [SKIPPED: lines 43–182] ...
+
+export function useTransactions() {
+    const ctx = useContext(TransactionContext);
+    if (!ctx) throw new Error('useTransactions must be used within TransactionProvider');
+    return ctx;
+}
+
+
+--- FILE: services/cloudSync.ts ---
+import { UpiTransaction } from './types';
+
+const API = 'http://localhost:4000/api';
+
+# ... [SKIPPED: lines 5–8] ...
+
+function decode(payload: string): string {
+    if (typeof atob === 'function') return atob(payload);
+    return payload;
+}
+
+# ... [SKIPPED: lines 15–23] ...
+
+# ... [SKIPPED: lines 25–31] ...
+
+
+--- FILE: services/exportService.ts ---
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
+import { UpiTransaction } from './types';
+
+type ExportResult = {
+    ok: boolean;
+    path?: string;
+    error?: string;
+};
+
+function escapeCsvField(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    const escaped = str.replace(/"/g, '""');
+    return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+}
+
+# ... [SKIPPED: lines 19–55] ...
+
+# ... [SKIPPED: lines 57–74] ...
+
+# ... [SKIPPED: lines 76–111] ...
+
+
+--- FILE: services/smartCategorizer.ts ---
+/**
+ * SmartCategorizer — AI-like categorization engine
+ * 
+ * Uses a scoring model with multiple signals:
+ * 1. Keyword matching (weighted)
+ * 2. VPA/UPI ID pattern matching (@merchant handles)
+ * 3. Amount heuristics (small amounts → food, large → transfers)
+ * 4. Learned corrections from user history
+ * 5. Confidence scoring to flag uncertain classifications
+ */
+
+
+// Weighted keyword rules: [keyword, category, weight]
+# ... [SKIPPED: lines 14–65] ...
+const VPA_RULES: [RegExp, string, number][] = [
+    [/swiggy/i, 'food', 0.98], [/zomato/i, 'food', 0.98],
+    [/uber/i, 'travel', 0.95], [/ola/i, 'travel', 0.95],
+    [/paytm/i, 'shopping', 0.5], [/phonepe/i, 'shopping', 0.4],
+    [/amazon/i, 'shopping', 0.9], [/flipkart/i, 'shopping', 0.95],
+    [/netflix/i, 'entertainment', 0.98], [/spotify/i, 'entertainment', 0.98],
+    [/airtel/i, 'bills', 0.85], [/jio/i, 'bills', 0.75],
+];
+
+// Amount-based heuristics
+# ... [SKIPPED: lines 76–82] ...
+
+export interface ScoredCategory {
+    category: string;
+    confidence: number;
+    signals: string[];
+}
+# ... [SKIPPED: lines 89–170] ...
+
+/**
+ * Check if this category assignment needs human review.
+ */
+export function needsReview(scored: ScoredCategory): boolean {
+    return scored.confidence < 0.5 || scored.category === 'uncategorized';
+}
+
+/**
+ * Get a human-readable reason for why review is needed.
+ */
+export function getReviewReason(scored: ScoredCategory): string | null {
+    if (scored.category === 'uncategorized') return 'No matching category found';
+    if (scored.confidence < 0.3) return 'Very low confidence';
+    if (scored.confidence < 0.5) return 'Multiple conflicting categories';
+    return null;
+}
+
+
+--- FILE: services/smsReader.ts ---
+import { PermissionsAndroid, Platform } from 'react-native';
+import { SmsMessage, SpendSummary } from './types';
+import { parseAllSms } from './upiParser';
+# ... [SKIPPED: lines 4–29] ...
+
+/**
+ * Check if SMS permission is already granted.
+ */
+export async function checkSmsPermission(): Promise<boolean> {
+    if (Platform.OS !== 'android') return false;
+
+    try {
+        const result = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_SMS
+        );
+        return result;
+    } catch {
+        return false;
+    }
+}
+# ... [SKIPPED: lines 46–99] ...
+
+
+--- FILE: services/syncService.ts ---
+# ... [SKIPPED: lines 1–7] ...
+const DEFAULT_API_URL = 'http://localhost:4000/api';
+# ... [SKIPPED: lines 9–13] ...
+
+export interface SyncPayload {
+    transactions: any[];
+    budgets: any[];
+    merchantMap: Record<string, string>;
+    timestamp: number;
+}
+
+export interface SyncResult {
+    ok: boolean;
+    cursor?: string;
+    error?: string;
+}
+
+export interface RestoreResult {
+    ok: boolean;
+    snapshot?: { payload: string; cursor: string } | null;
+    error?: string;
+}
+# ... [SKIPPED: lines 33–79] ...
+
+
+--- FILE: services/types.ts ---
+# ... [SKIPPED: lines 1–9] ...
+
+export type TransactionType = 'debit' | 'credit';
+export type ParseStatus = 'parsed' | 'review_needed' | 'failed';
+
+# ... [SKIPPED: lines 14–29] ...
+
+# ... [SKIPPED: lines 31–38] ...
+
+export interface BudgetConfig {
+    monthKey: string;
+    amount: number;
+}
+
+
+--- FILE: services/upiParser.ts ---
+import { needsReview, scoreTransaction } from './smartCategorizer';
+import { SmsMessage, SpendSummary, TransactionType, UpiTransaction } from './types';
+
+const UPI_KEYWORDS = ['upi', 'imps', 'neft', 'debited', 'credited', 'sent to', 'received from', 'paid to', 'payment', 'gpay', 'phonepe', 'paytm'];
+# ... [SKIPPED: lines 5–10] ...
+const CREDIT_INDICATORS = ['credited', 'received', 'refund', 'cashback', 'deposit'];
+# ... [SKIPPED: lines 12–13] ...
+const SPAM_INDICATORS = [
+    'offer', 'bonus', 'join today', 'promo', 'discount', 'coupon', 'cashback offer',
+    'signup bonus', 'welcome bonus', 'reward points', 'expires', 'limited time',
+    'win ', 'won ', 'lucky', 'congratulations', 'claim now', 'free', 'subscribe',
+    'unsubscribe', 'opt out', 'click here', 'download app', 'install now',
+    'gambling', 'bet ', 'casino', 'fantasy', 'dream11', 'rummy',
+    'loan', 'emi available', 'pre-approved', 'credit card offer', 'apply now',
+    'sale ', 'flat ', '% off', 'deal of', 'use code', 'voucher',
+];
+# ... [SKIPPED: lines 23–29] ...
+
+# ... [SKIPPED: lines 31–31] ...
+
+# ... [SKIPPED: lines 33–36] ...
+
+# ... [SKIPPED: lines 38–42] ...
+
+# ... [SKIPPED: lines 44–49] ...
+
+# ... [SKIPPED: lines 51–63] ...
+
+# ... [SKIPPED: lines 65–71] ...
+
+function extractUpiRef(body: string): string | null {
+    for (const pattern of UPI_REF_PATTERNS) {
+        const match = body.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+# ... [SKIPPED: lines 81–85] ...
+
+# ... [SKIPPED: lines 87–117] ...
+
+# ... [SKIPPED: lines 119–133] ...
+
+
+--- FILE: services/auth/firebase.ts ---
+# ... [SKIPPED: lines 1–2] ...
+import { Auth, getAuth, initializeAuth } from '@firebase/auth';
+
+# ... [SKIPPED: lines 5–12] ...
+
+# ... [SKIPPED: lines 14–21] ...
+
+# ... [SKIPPED: lines 23–25] ...
+
+if (missingConfig.length > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(`[Auth] Missing Firebase config values: ${missingConfig.join(', ')}`);
+}
+
+# ... [SKIPPED: lines 32–32] ...
+
+# ... [SKIPPED: lines 34–57] ...
+
+# ... [SKIPPED: lines 59–66] ...
+let authInstance: Auth;
+if (reactNativePersistence) {
+    try {
+        authInstance = initializeAuth(app, { persistence: reactNativePersistence as never });
+    } catch {
+        // Already initialized during fast refresh / hot reload.
+        authInstance = getAuth(app);
+    }
+} else {
+    authInstance = getAuth(app);
+}
+
+export const auth: Auth = authInstance;
+
+# ... [SKIPPED: lines 81–83] ...
+
+
+--- FILE: services/data/transactionsRepo.ts ---
+# ... [SKIPPED: lines 1–3] ...
+
+const TX_KEY = 'syncspend.transactions.v1';
+# ... [SKIPPED: lines 6–7] ...
+
+# ... [SKIPPED: lines 9–14] ...
+
+# ... [SKIPPED: lines 16–18] ...
+
+# ... [SKIPPED: lines 20–27] ...
+
+export async function addManualTransaction(item: Omit<UpiTransaction, 'id' | 'source'>) {
+    const record: UpiTransaction = { ...item, id: `manual-${Date.now()}`, source: 'manual' };
+    const merged = await upsertTransactions([record]);
+    return { record, merged };
+}
+
+# ... [SKIPPED: lines 35–37] ...
+
+# ... [SKIPPED: lines 39–42] ...
+
+# ... [SKIPPED: lines 44–49] ...
+
+
+--- FILE: __tests__/category.test.ts ---
+/**
+ * SyncSpend QA Testing — Category Engine + Smart Scorer Tests
+ *
+ * Run: npx tsx __tests__/category.test.ts
+ */
+
+// Re-implement the scoring logic inline for testing (no native module deps)
+
+# ... [SKIPPED: lines 9–16] ...
+
+# ... [SKIPPED: lines 18–25] ...
+
+// ---- TEST CASES ----
+
+console.log('=== SyncSpend Category Engine Tests ===\n');
+
+let passed = 0;
+let failed = 0;
+
+function assert(name: string, condition: boolean) {
+    if (condition) { passed++; console.log(`  ✅ ${name}`); }
+    else { failed++; console.log(`  ❌ FAIL: ${name}`); }
+}
+# ... [SKIPPED: lines 38–77] ...
+
+--- FILE: __tests__/parser.test.ts ---
+/**
+ * SyncSpend QA Testing — Parser Unit Tests
+ *
+ * Run: npx jest __tests__/parser.test.ts
+ * (or: npx ts-jest --config tsconfig.json __tests__/parser.test.ts)
+ *
+ * These tests verify SMS parsing, categorization, and spam filtering.
+ */
+
+// ---- Test Helpers ----
+
+interface SmsMessage {
+    _id: string;
+    address: string;
+    body: string;
+    date: number;
+}
+# ... [SKIPPED: lines 18–32] ...
+
+function isUpiMessage(body: string): boolean {
+    const UPI_KEYWORDS = ['upi', 'imps', 'neft', 'debited', 'credited', 'sent to', 'received from', 'paid to', 'payment', 'gpay', 'phonepe', 'paytm'];
+    const lower = body.toLowerCase();
+    if (isPromotionalSms(body)) return false;
+    return UPI_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+# ... [SKIPPED: lines 41–61] ...
+let passed = 0;
+let failed = 0;
+
+function assert(name: string, condition: boolean) {
+    if (condition) { passed++; console.log(`  ✅ ${name}`); }
+    else { failed++; console.log(`  ❌ FAIL: ${name}`); }
+}
+# ... [SKIPPED: lines 69–106] ...

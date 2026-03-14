@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -50,33 +51,47 @@ function iconForCategory(category: string): string {
   return iconMap[category] ?? 'help-outline';
 }
 
-function TxnRow({ txn }: { txn: UpiTransaction }) {
+function TxnRow({ txn, onDelete }: { txn: UpiTransaction; onDelete?: (id: string) => void }) {
   const cat = getCategoryInfo(txn.category);
   const isCredit = txn.type === 'credit';
 
+  const handleLongPress = () => {
+    if (!onDelete) return;
+    Alert.alert(
+      'Remove Transaction',
+      `Delete ${cat.label} — ${formatMoney(txn.amount)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => onDelete(txn.id) },
+      ],
+    );
+  };
+
   return (
-    <View style={s.row}>
-      <View style={s.iconWrap}>
-        <MaterialIcons name={iconForCategory(txn.category) as never} size={22} color="#fff" />
+    <TouchableOpacity onLongPress={handleLongPress} activeOpacity={0.7} delayLongPress={400}>
+      <View style={s.row}>
+        <View style={s.iconWrap}>
+          <MaterialIcons name={iconForCategory(txn.category) as never} size={22} color="#fff" />
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={s.rowTitle} numberOfLines={1}>
+            {cat.label}
+          </Text>
+          <Text style={s.rowSub} numberOfLines={1}>
+            {txn.merchant}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[s.amount, isCredit && { color: '#4ade80' }]}>
+            {isCredit ? '+' : '-'}
+            {formatMoney(txn.amount)}
+          </Text>
+          <Text style={s.time}>
+            {txn.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
       </View>
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={s.rowTitle} numberOfLines={1}>
-          {cat.label}
-        </Text>
-        <Text style={s.rowSub} numberOfLines={1}>
-          {txn.merchant}
-        </Text>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[s.amount, isCredit && { color: '#4ade80' }]}>
-          {isCredit ? '+' : '-'}
-          {formatMoney(txn.amount)}
-        </Text>
-        <Text style={s.time}>
-          {txn.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -88,6 +103,7 @@ export default function HomeTab() {
     hasPermission,
     isUnsupported,
     requestPermissionAndScan,
+    deleteTransaction,
   } = useTransactions();
 
   const [searchVisible, setSearchVisible] = useState(false);
@@ -237,7 +253,7 @@ export default function HomeTab() {
           <>
             <Text style={s.dayLabel}>TODAY</Text>
             {sections.today.map((txn) => (
-              <TxnRow key={txn.id} txn={txn} />
+              <TxnRow key={txn.id} txn={txn} onDelete={deleteTransaction} />
             ))}
           </>
         )}
@@ -246,7 +262,7 @@ export default function HomeTab() {
           <>
             <Text style={[s.dayLabel, { marginTop: 16 }]}>YESTERDAY</Text>
             {sections.yesterday.map((txn) => (
-              <TxnRow key={txn.id} txn={txn} />
+              <TxnRow key={txn.id} txn={txn} onDelete={deleteTransaction} />
             ))}
           </>
         )}
@@ -255,7 +271,7 @@ export default function HomeTab() {
           <>
             <Text style={[s.dayLabel, { marginTop: 16 }]}>OLDER</Text>
             {sections.older.map((txn) => (
-              <TxnRow key={txn.id} txn={txn} />
+              <TxnRow key={txn.id} txn={txn} onDelete={deleteTransaction} />
             ))}
           </>
         )}

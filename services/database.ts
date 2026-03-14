@@ -117,6 +117,14 @@ export async function updateTransactionCategory(txnId: string, category: string)
     } catch { /* graceful fallback */ }
 }
 
+export async function deleteTransaction(txnId: string): Promise<void> {
+    try {
+        const db = await getDb();
+        if (!db) return;
+        await db.runAsync('DELETE FROM transactions WHERE id = ?', txnId);
+    } catch { /* graceful fallback */ }
+}
+
 export async function deleteAllTransactions(): Promise<void> {
     try {
         const db = await getDb();
